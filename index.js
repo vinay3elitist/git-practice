@@ -17,3 +17,7 @@ function greet(){
 function newFeatureAdd(){
     console.log("New Feature");
 }
+
+function newFeatureAdd2(){
+    console.log("New Feature2");
+}
