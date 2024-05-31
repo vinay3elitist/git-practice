@@ -29,7 +29,3 @@ function newFeatureAdd3(){
     console.log("New Feature3");
     console.log("New Feature4");
 }
-
-function newFeatureAdd2(){
-    console.log("New Feature");
-}
