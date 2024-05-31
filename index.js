@@ -20,4 +20,5 @@ function newFeatureAdd(){
 
 function newFeatureAdd2(){
     console.log("New Feature2");
+    console.log("New Feature3");
 }
