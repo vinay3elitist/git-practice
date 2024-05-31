@@ -24,8 +24,14 @@ function newFeatureAdd2(){
     console.log("New Feature4");
 }
 
+<<<<<<< Updated upstream
 function newFeatureAdd3(){
     console.log("New Feature2");
     console.log("New Feature3");
     console.log("New Feature4");
 }
+=======
+function newFeatureAdd2(){
+    console.log("New Feature");
+}
+>>>>>>> Stashed changes
