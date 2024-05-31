@@ -1,0 +1,17 @@
+{
+    "apps":[
+        {
+            "name":"pm2auth",
+            "script":"./app.js",
+            "watch":true,
+            "ignore_watch":["node_modules","package-lock.json"],
+            "instances":1,
+            "exec_mode":"fork",
+            "env":{
+                "MONGODB_URL":"mongodb://localhost:27017/authPM2",
+                "PORT":6000,
+                "ACCESS_TOKEN_SECRET":"secretkey"
+            }
+        }
+    ]
+}
