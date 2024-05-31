@@ -13,3 +13,7 @@ function mul(a, b){
 function greet(){
     console.log("Hello");
 }
+
+function newFeatureAdd(){
+    console.log("New Feature");
+}
