@@ -64,6 +64,103 @@ class WhatsappService {
   }
   
 
+
+  sendWhatsappMessageTemplate = (phoneNumber, templateName, templateParameters) => {
+    return new Promise((resolve, reject) => {
+      const data = {
+        "messaging_product": "whatsapp",
+        "to": phoneNumber,
+        "type": "template",
+        "category": "marketing",
+        "template": {
+          "name": templateName,
+          "language": {
+            "code": "en"
+          },
+          "components": [
+            {
+              "type": "header",
+              "parameters": [
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://via.placeholder.com/400"
+                  }
+                },
+                // {
+                //   "type" : 'body',
+                //   "parameters": templateParameters 
+                // }
+              ]
+            }
+          ]
+        }
+      };
+      axios.post(this.url, data, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => {
+        console.log('Response:', response.data);
+        resolve(response.data);
+      })
+      .catch(error => {
+        console.error('Error:', error.response ? error.response.data : error.message);
+        reject(error);
+      });
+    });
+  };
+  
+      sendMultipleWhatsappMessages = (data) => {
+        return new Promise(async (resolve, reject) => {
+          try {
+            const {phoneList,templateParameters,templateName} = data
+           
+            const uniquePhoneList = [...new Set(phoneList)];
+            const whatsappMessagePromiseArr = []
+            for (let phoneNumberIndex = 0; phoneNumberIndex < uniquePhoneList.length; phoneNumberIndex++) {
+              if(this.checkValidPhoneNumber(uniquePhoneList[phoneNumberIndex])){
+                whatsappMessagePromiseArr.push(await this.sendWhatsappMessageTemplate(uniquePhoneList[phoneNumberIndex], templateName,templateParameters));
+                console.log("valid")
+              } else{
+                console.error("Invalid phone number")
+              }
+            }
+            Promise.allSettled(whatsappMessagePromiseArr).then((result) => {
+              console.log("🚀 ~ WhatsappService ~ Promise.allSettled ~ result:", result)
+              resolve(true)
+            }).catch((error) => {
+              reject(error)
+            })
+          } catch (error) {
+            reject(error)
+          }
+        })
+      }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   sendWhatsappMessageTemplate = (phoneNumber, templateName, templateParameters) => {
     return new Promise((resolve, reject) => {
       const data = {
