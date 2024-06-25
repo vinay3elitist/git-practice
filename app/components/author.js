@@ -1,197 +1,99 @@
-const axios = require('axios');
+const scheduleNotification = async (notification, deviceTokenArr) => {
+  const now = moment();
+  const scheduledTime = moment(notification.scheduledDateAndTime);
+  const delay = scheduledTime.diff(now);  // find delay b/w current time and scheduled time
 
-class WhatsappService {
-    constructor(){
-        this.accessToken = process.env.WHATSAPP_TOKEN
-        this.url = process.env.WHATSAPP_URL
+  const data = {
+    title: notification.title,
+    description: notification.description,
+    user: notification.user || "All Users",
+    status: notification.status,
+    scheduledDateAndTime: notification.scheduledDateAndTime,
+    notificationType: "general"
+  }
+
+  if (delay > 0) {
+    setTimeout(async () => {
+      // const response = await fcm.sendPushNotification(
+      //   deviceTokenArr,
+      //   notification.title,
+      //   notification.description,
+      //   data
+      // );
+      // console.log('Notification sent:', response);
+      console.log('Notification sent:');
+    }, delay);
+  } else {
+    // const response = await fcm.sendPushNotification(
+    //   deviceTokenArr,
+    //   notification.title,
+    //   notification.description,
+    //   data
+    // );
+    // console.log('Notification sent:', response);
+    console.log('Notification sent:');
+  }
+};
+
+exports.checkAndSendNotifications = async () => {
+  const now = moment();
+  const fiveMinutesFromNow = moment().add(5, 'minutes');
+
+  const notifications = await getNotifications(
+    { 
+      scheduledDateAndTime: {
+        $gte: now.toDate(),
+        $lte: fiveMinutesFromNow.toDate()
+      },
+      status: true,
+      isDeleted: false
+    }
+  );
+  notifications.sort((a, b) => a.scheduledDateAndTime - b.scheduledDateAndTime);  // Sort notifications
+  console.log("\nnotifications", notifications);
+
+  for (const notification of notifications) {
+    const userQuery = {
+      deviceToken: { $exists: true },
+      isActive: true,
+    };
+
+    if (notification.user && notification.user.length > 0) {
+      userQuery._id = { $in: notification.user };
     }
 
-    checkValidPhoneNumber = (phoneNumber) => {
-     
-      const phoneNumberRegex = /^(?:\+91|91)?\d{10}$/;
-  
-      // Check if phoneNumber is not null, undefined, or empty and matches the regex
-      if (phoneNumber && phoneNumberRegex.test(phoneNumber)) {
-          if ((phoneNumber.startsWith("+91") && phoneNumber.length === 13) || 
-              (phoneNumber.startsWith("91") && phoneNumber.length === 12) ||
-              (phoneNumber.startsWith("91") && phoneNumber.length === 10) ||
-              (!phoneNumber.startsWith("+91") && !phoneNumber.startsWith("91") && phoneNumber.length === 10)) {
-              return true; // Valid phoneNumber
-          }
-      }
-      return false; // Invalid phoneNumber
-    }
-  
-
-  sendWhatsappMessageTemplate = (phoneNumber, templateName, templateParameters) => {
-    return new Promise((resolve, reject) => {
-      const data = {
-        "messaging_product": "whatsapp",
-        "to": phoneNumber,
-        "type": "template",
-        "category": "marketing",
-        "template": {
-          "name": templateName,
-          "language": {
-            "code": "en"
-          },
-          "components": [
-            {
-              "type": "header",
-              "parameters": [
-                {
-                  "type": "image",
-                  "image": {
-                    "link": "https://via.placeholder.com/400"
-                  }
-                },
-                // {
-                //   "type" : 'body',
-                //   "parameters": templateParameters 
-                // }
-              ]
-            }
-          ]
-        }
-      };
-      axios.post(this.url, data, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        }
-      })
-      .then(response => {
-        console.log('Response:', response.data);
-        resolve(response.data);
-      })
-      .catch(error => {
-        console.error('Error:', error.response ? error.response.data : error.message);
-        reject(error);
-      });
+    const deviceTokens = await User.find(userQuery, {
+      deviceToken: 1,
+      name: 1,
     });
-  };
-  
-      sendMultipleWhatsappMessages = (data) => {
-        return new Promise(async (resolve, reject) => {
-          try {
-            const {phoneList,templateParameters,templateName} = data
-           
-            const uniquePhoneList = [...new Set(phoneList)];
-            const whatsappMessagePromiseArr = []
-            for (let phoneNumberIndex = 0; phoneNumberIndex < uniquePhoneList.length; phoneNumberIndex++) {
-              if(this.checkValidPhoneNumber(uniquePhoneList[phoneNumberIndex])){
-                whatsappMessagePromiseArr.push(await this.sendWhatsappMessageTemplate(uniquePhoneList[phoneNumberIndex], templateName,templateParameters));
-                console.log("valid")
-              } else{
-                console.error("Invalid phone number")
-              }
-            }
-            Promise.allSettled(whatsappMessagePromiseArr).then((result) => {
-              console.log("🚀 ~ WhatsappService ~ Promise.allSettled ~ result:", result)
-              resolve(true)
-            }).catch((error) => {
-              reject(error)
-            })
-          } catch (error) {
-            reject(error)
-          }
-        })
-      }
 
+    const deviceTokenArr = deviceTokens
+      .map((deviceTokenRecord) => deviceTokenRecord.deviceToken)
+      .filter((token) => token && token !== "BLACKLISTED");
+    console.log("deviceTokenArr", deviceTokenArr);
 
-
-  whatsappMessageTemplate = (phoneNumber, templateName, templateParameters, languageCode, category, image, countryCode) => {
-    if(phoneNumber.length === 10) {
-      phoneNumber = `${countryCode}${phoneNumber}`;
+    if (deviceTokenArr.length > 0) {
+      // const data = {
+      //   title: notification.title,
+      //   description: notification.description,
+      //   user: notification.user || "All Users",
+      //   status: notification.status,
+      //   scheduledDateAndTime: notification.scheduledDateAndTime,
+      //   notificationType: "general",
+      // }
+      // const response = await fcm.sendPushNotification(
+      //   deviceTokenArr,
+      //   notification.title,
+      //   notification.description,
+      //   data
+      // );
+      scheduleNotification(notification, deviceTokenArr);
+      console.log("\nNotification sent:", response);
+    } else {
+      console.log(
+        "No valid device tokens found for notification:",
+        notification._id
+      );
     }
-
-    console.log("phoneNumber: ", phoneNumber);
-    
-    return new Promise((resolve, reject) => {
-      const components = [];
-      if(image) {
-        components.push({
-          "type": "header",
-          "parameters": [
-            {
-              "type": "image",
-              "image": {
-                "link": image
-              }
-            }
-          ]
-        })
-      }
-
-      if(templateParameters && templateParameters.length > 0) {
-        components.push({
-          "type" : "body",
-          "parameters": templateParameters 
-        })
-      }
-
-      const data = {
-        "messaging_product": "whatsapp",
-        "to": phoneNumber,
-        "type": "template",
-        "category": category,
-        "template": {
-          "name": templateName,
-          "language": {
-            "code": languageCode
-          },
-        }
-      };
-      // Add components field only if it's not empty
-      if (components.length > 0) {
-        data.template.components = components;
-      }
-      console.log("Components: ", components);
-      console.log("Data sended to user: ", data);
-      
-      axios.post(this.url, data, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        }
-      })
-      .then(response => {
-        console.log('Response:', response.data);
-        resolve(response.data);
-      })
-      .catch(error => {
-        console.error('Error:', error.response ? error.response.data : error.message);
-        reject(error);
-      });
-    });
-  };
-
-  sendWhatsappMessage = (data) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const { phoneList, templateParameters, templateName, languageCode, category, image, countryCode} = data
-       
-        const uniquePhoneList = [...new Set(phoneList)];
-        const whatsappMessagePromiseArr = []
-        for (let phoneNumberIndex = 0; phoneNumberIndex < uniquePhoneList.length; phoneNumberIndex++) {
-          if(this.checkValidPhoneNumber(uniquePhoneList[phoneNumberIndex])){
-            console.log("\nvalid\n")
-            whatsappMessagePromiseArr.push(await this.whatsappMessageTemplate(uniquePhoneList[phoneNumberIndex], templateName, templateParameters, languageCode, category, image, countryCode));
-          } else{
-            console.error("\nInvalid phone number")
-          }
-        }
-        Promise.allSettled(whatsappMessagePromiseArr).then((result) => {
-          console.log("🚀 ~ WhatsappService ~ Promise.allSettled ~ result:", result)
-          resolve(true)
-        }).catch((error) => {
-          reject(error)
-        })
-      } catch (error) {
-        reject(error)
-      }
-    })
   }
 }
-
-module.exports = WhatsappService;
